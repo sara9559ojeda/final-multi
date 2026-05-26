@@ -1,0 +1,42 @@
+[
+    {
+        "name": "rueda_lev1",
+        "x": 311.0339,
+        "y": 0.0,
+        "z": -165.6996,
+        "rotationY": 2.7295,
+        "scale": 1.0,
+        "Role": "building",
+        "level": 1
+    },
+    {
+        "name": "tent_lev1",
+        "x": -140.9385,
+        "y": 0.0,
+        "z": -330.9421,
+        "rotationY": -0.7647,
+        "scale": 1.0,
+        "Role": "building",
+        "level": 1
+    },
+    {
+        "name": "tent1_lev1",
+        "x": 197.5299,
+        "y": 0.0,
+        "z": -330.9321,
+        "rotationY": 0.7336,
+        "scale": 1.0,
+        "Role": "building",
+        "level": 1
+    },
+    {
+        "name": "tentgrande_lev1",
+        "x": 25.719,
+        "y": 7.8109,
+        "z": -507.6445,
+        "rotationY": -1.6605,
+        "scale": 1.0,
+        "Role": "building",
+        "level": 1
+    }
+]
