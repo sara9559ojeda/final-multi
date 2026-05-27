@@ -42,9 +42,9 @@ export default class World {
         this.spawnPosition = new THREE.Vector3(0, 0, 0) // Posición inicial del spawn
 
         // Sistema de coins del JSON (PASO 4)
-        this.jsonCoinsCollected = { 1: 0, 2: 0, 3: 0 } // Coins del JSON recolectados por nivel
-        this.jsonCoinsTotal = { 1: 0, 2: 0, 3: 0 } // Total de coins del JSON por nivel
-        this.finalPrizeCollected = { 1: false, 2: false, 3: false } // Estado del finalPrize por nivel
+        this.jsonCoinsCollected = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } // Coins del JSON recolectados por nivel
+        this.jsonCoinsTotal = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } // Total de coins del JSON por nivel
+        this.finalPrizeCollected = { 1: false, 2: false, 3: false, 4: false, 5: false } // Estado del finalPrize por nivel
 
         // Sistema de niveles
         this.currentLevel = 1
@@ -553,16 +553,47 @@ export default class World {
         })
         document.body.appendChild(this.levelIndicator)
 
+        // ── Barra de progreso de monedas ────────────────────────────────────
         this.coinsCounter = document.createElement('div')
         this.coinsCounter.id = 'hud-coins'
-        this.updateCoinsCounter()
         Object.assign(this.coinsCounter.style, {
-            position: 'fixed', top: '70px', left: '20px', fontSize: '15px', fontWeight: 'bold',
+            position: 'fixed', top: '70px', left: '20px', width: '210px',
             background: 'rgba(0,0,0,0.7)', color: 'white', padding: '8px 14px',
             borderRadius: '8px', zIndex: 9999, fontFamily: 'sans-serif', pointerEvents: 'none',
             backdropFilter: 'blur(10px)'
         })
+
+        // Fila superior: etiqueta + contador numérico
+        const coinsRow = document.createElement('div')
+        Object.assign(coinsRow.style, {
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            fontSize: '13px', fontWeight: 'bold', marginBottom: '6px'
+        })
+        this.coinsLabelText = document.createElement('span')
+        this.coinsLabelText.innerText = '🪙 Monedas'
+        this.coinsLabelCount = document.createElement('span')
+        this.coinsLabelCount.innerText = '0 / 0'
+        coinsRow.appendChild(this.coinsLabelText)
+        coinsRow.appendChild(this.coinsLabelCount)
+
+        // Barra de progreso
+        const barOuter = document.createElement('div')
+        Object.assign(barOuter.style, {
+            width: '100%', height: '8px', background: 'rgba(255,255,255,0.2)',
+            borderRadius: '4px', overflow: 'hidden'
+        })
+        this.progressBarInner = document.createElement('div')
+        Object.assign(this.progressBarInner.style, {
+            height: '100%', width: '0%',
+            background: 'linear-gradient(90deg, #ffd700, #ff8c00)',
+            borderRadius: '4px', transition: 'width 0.4s ease'
+        })
+        barOuter.appendChild(this.progressBarInner)
+
+        this.coinsCounter.appendChild(coinsRow)
+        this.coinsCounter.appendChild(barOuter)
         document.body.appendChild(this.coinsCounter)
+        this.updateCoinsCounter()
 
         this.skipToLevel2Button = document.createElement('button')
         this.skipToLevel2Button.id = 'skip-level2-button'
@@ -622,10 +653,16 @@ export default class World {
     }
 
     updateCoinsCounter() {
-        if (this.coinsCounter) {
-            // 💥 FIX: Mostrar monedas restantes
-            const restantes = this.maxCoins - this.coinsCollected;
-            this.coinsCounter.innerText = `🪙 Monedas restantes: ${restantes}`
+        if (this.coinsLabelCount && this.progressBarInner) {
+            const collected = this.coinsCollected
+            const total = this.maxCoins
+            const pct = total > 0 ? Math.min(100, (collected / total) * 100) : 0
+            this.coinsLabelCount.innerText = `${collected} / ${total}`
+            this.progressBarInner.style.width = `${pct}%`
+            // Verde al completarse
+            this.progressBarInner.style.background = pct >= 100
+                ? 'linear-gradient(90deg, #00ff88, #00cc55)'
+                : 'linear-gradient(90deg, #ffd700, #ff8c00)'
         }
         this.updateSkipButtonVisibility()
     }
@@ -1133,7 +1170,7 @@ export default class World {
     countJsonCoinsByLevel() {
         if (!this.loader) return
 
-        for (let level = 1; level <= 3; level++) {
+        for (let level = 1; level <= 5; level++) {
             const coinsDefault = this.loader.getCoinsCountByLevel(level, 'default')
             const coinsFinalPrize = this.loader.getCoinsCountByLevel(level, 'finalPrize')
 
@@ -1302,6 +1339,7 @@ export default class World {
         }
 
         const gameOverModal = document.createElement('div')
+        gameOverModal.id = 'game-over-modal'
         gameOverModal.innerHTML = `
             <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 background: rgba(0, 0, 0, 0.95); padding: 40px; border-radius: 12px; color: #fff;
@@ -1309,17 +1347,94 @@ export default class World {
                 box-shadow: 0 0 30px rgba(255, 0, 0, 0.5); border: 2px solid #ff0000;">
                 <h2 style="font-size: 32px; margin-bottom: 20px; color: #ff0000;">💀 ¡GAME OVER!</h2>
                 <p style="font-size: 18px; margin-bottom: 30px;">Un enemigo te ha atrapado</p>
-                <button id="restart-game-btn" style="padding: 12px 24px; font-size: 16px; background: #ff0000;
-                    color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🔄 Reiniciar Juego</button>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button id="repeat-level-btn" style="padding: 12px 24px; font-size: 16px; background: #ff6600;
+                        color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🔄 Repetir Nivel ${this.currentLevel}</button>
+                    <button id="restart-game-btn" style="padding: 12px 24px; font-size: 16px; background: #555555;
+                        color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🏠 Volver al Nivel 1</button>
+                </div>
             </div>
         `
         document.body.appendChild(gameOverModal)
 
-        const restartBtn = document.getElementById('restart-game-btn')
-        restartBtn.addEventListener('click', () => {
+        document.getElementById('repeat-level-btn').addEventListener('click', () => {
+            gameOverModal.remove()
+            this.repeatCurrentLevel()
+        })
+        document.getElementById('restart-game-btn').addEventListener('click', () => {
             gameOverModal.remove()
             this.restartGame()
         })
+    }
+
+    async repeatCurrentLevel() {
+        const level = this.currentLevel
+
+        this.gameOver = false
+        this.clearEnemies()
+
+        // Limpiar monedas dinámicas
+        this.coins.forEach(coin => { if (coin.pivot) coin.collect() })
+        this.coins = []
+        if (this.coinsParticles) { this.coinsParticles.remove(); this.coinsParticles = null }
+
+        // Limpiar portal
+        if (this.portal && this.portal.group) { this.scene.remove(this.portal.group); this.portal = null }
+
+        // Limpiar monedas fijas del nivel actual del loader
+        if (this.loader && this.loader.prizes) {
+            const toRemove = this.loader.prizes.filter(p =>
+                p.level === level || (level === 1 && !p.level)
+            )
+            toRemove.forEach(prize => {
+                prize.collect()
+                const idx = this.loader.prizes.indexOf(prize)
+                if (idx !== -1) this.loader.prizes.splice(idx, 1)
+            })
+        }
+
+        // Resetear contadores del nivel
+        this.coinsCollected = 0
+        this.points = 0
+        this.jsonCoinsCollected[level] = 0
+        this.finalPrizeCollected[level] = false
+        this.updateCoinsCounter()
+
+        // Resetear posición del robot
+        if (this.robot && this.robot.body) {
+            this.robot.body.position.set(0, 1, 0)
+            this.robot.body.velocity.set(0, 0, 0)
+            this.robot.body.angularVelocity.set(0, 0, 0)
+            this.spawnPosition.set(0, 0, 0)
+        }
+
+        if (level === 1) {
+            // Nivel 1: los edificios ya están en escena desde el inicio
+            await this.loadMaxCoinsFromBackend(1)
+            setTimeout(() => this.activateFixedCoins(), 500)
+        } else {
+            // Niveles 2-5: limpiar y recargar edificios del nivel actual
+            const levelKey = `level${level}Buildings`
+            const physicsKey = `level${level}Physics`
+
+            if (this.loader && this.loader.clearBuildingsByLevel) {
+                this.loader.clearBuildingsByLevel(level)
+            }
+            if (this[levelKey] && this[levelKey].length > 0) {
+                this[levelKey].forEach(b => { if (b && b.parent) this.scene.remove(b) })
+                this[levelKey] = []
+            }
+            if (this[physicsKey] && this[physicsKey].length > 0) {
+                this[physicsKey].forEach(body => this.experience.physics.world.removeBody(body))
+                this[physicsKey] = []
+            }
+
+            await this.loadMaxCoinsFromBackend(level)
+            await this.loader.loadBuildingsByLevel(level)
+            setTimeout(() => this.activateFixedCoins(), 500)
+        }
+
+        setTimeout(() => this.generateEnemies(), 1000)
     }
 
     restartGame() {
@@ -1507,7 +1622,7 @@ export default class World {
         this.updateLevelIndicator()
         await this.loadMaxCoinsFromBackend(5)
         this.countJsonCoinsByLevel()
-        this.cheesesCollected = 0
+        this.coinsCollected = 0
         this.pointsByLevel[4] = this.points
         this.points = 0
         this.updateSkipButtonVisibility()
